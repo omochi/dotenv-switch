@@ -118,7 +118,7 @@ struct DotEnvSwitchTests {
         )
     }
 
-    @Test func applyInsertsAfterLastCommentedDefinition() throws {
+    @Test func applyReplacesLastCommentedDefinitionAndRemovesOtherMatchingDefinitions() throws {
         let fixture = try Fixture(
             envs: """
                 network:
@@ -129,6 +129,7 @@ struct DotEnvSwitchTests {
             dotEnv: """
                 # API_URL=http://example-1
                 TOKEN=abc
+                API_URL=http://old
                 # API_URL=http://example-2
                 OTHER=value
                 """
@@ -138,9 +139,7 @@ struct DotEnvSwitchTests {
 
         #expect(
             try fixture.readDotEnv() == """
-                # API_URL=http://example-1
                 TOKEN=abc
-                # API_URL=http://example-2
                 API_URL=http://192.168.1.2
                 OTHER=value
                 """
@@ -260,7 +259,6 @@ struct DotEnvSwitchTests {
         #expect(
             try fixture.readDotEnv() == """
                 TOKEN=abc
-                # LOG_LEVEL=info
                 LOG_LEVEL=debug
                 OTHER=value
                 """
@@ -271,7 +269,7 @@ struct DotEnvSwitchTests {
         #expect(
             try fixture.readDotEnv() == """
                 TOKEN=abc
-                # LOG_LEVEL=info
+                # LOG_LEVEL=debug
                 OTHER=value
                 """
         )
@@ -346,6 +344,64 @@ struct DotEnvSwitchTests {
             try fixture.readDotEnv() == """
                 # API endpoint
                 API_URL=http://localhost:3000
+                """
+        )
+    }
+
+    @Test func diffShowsOnlyChangedHunksWithContext() throws {
+        let fixture = try Fixture(
+            envs: """
+                change:
+                  both:
+                    set:
+                      LINE_04: changed-4
+                      LINE_12: changed-12
+                """,
+            dotEnv: """
+                LINE_01=value-1
+                LINE_02=value-2
+                LINE_03=value-3
+                LINE_04=value-4
+                LINE_05=value-5
+                LINE_06=value-6
+                LINE_07=value-7
+                LINE_08=value-8
+                LINE_09=value-9
+                LINE_10=value-10
+                LINE_11=value-11
+                LINE_12=value-12
+                LINE_13=value-13
+                LINE_14=value-14
+                LINE_15=value-15
+                LINE_16=value-16
+                """
+        )
+
+        let output = try fixture.tool.diff(path: "change.both")
+
+        #expect(
+            output == """
+                --- .env
+                +++ .env (change.both)
+                @@ -1,7 +1,7 @@
+                 LINE_01=value-1
+                 LINE_02=value-2
+                 LINE_03=value-3
+                -LINE_04=value-4
+                +LINE_04=changed-4
+                 LINE_05=value-5
+                 LINE_06=value-6
+                 LINE_07=value-7
+                @@ -9,7 +9,7 @@
+                 LINE_09=value-9
+                 LINE_10=value-10
+                 LINE_11=value-11
+                -LINE_12=value-12
+                +LINE_12=changed-12
+                 LINE_13=value-13
+                 LINE_14=value-14
+                 LINE_15=value-15
+
                 """
         )
     }

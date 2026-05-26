@@ -213,7 +213,7 @@ Only variable-name expressions are supported. There is no escape syntax.
 
 `del` は `.env` 内の有効な `KEY=value` 行を無効化します。`# KEY=...` のようなコメントアウト行がファイル内のどこかに既にある場合、その key の有効な定義行は削除します。存在しない場合は、現在の定義行を `# KEY=value` としてその場でコメントアウトします。
 
-If a key does not exist, it looks for a commented-out definition:
+If a key does not exist, it looks for commented-out definitions:
 
 キーが存在しない場合は、まずコメントアウトされた定義を探します。
 
@@ -221,12 +221,11 @@ If a key does not exist, it looks for a commented-out definition:
 # API_URL=http://example
 ```
 
-When found, the new definition is inserted below the last matching commented-out line.
+When found, the last matching commented-out line is replaced with the new definition, and the other matching commented-out lines are removed.
 
-見つかった場合は、最後に見つかったコメントアウト行の直下へ新しい定義を挿入します。
+見つかった場合は、最後に見つかったコメントアウト行を新しい定義で置き換え、それ以外の同じ key のコメントアウト行は削除します。
 
 ```dotenv
-# API_URL=http://example
 API_URL=http://192.168.1.2
 ```
 

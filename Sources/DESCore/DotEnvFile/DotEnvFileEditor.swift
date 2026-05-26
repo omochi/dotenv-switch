@@ -22,16 +22,27 @@ enum DotEnvFileEditor {
 
         for value in change.values {
             let newLine = "\(value.key)=\(DotEnvFileValueFormatter.format(value.value))"
+            if let lastCommentIndex = lines.indices.last(where: { commentedDefinitionKey(in: lines[$0]) == value.key }) {
+                var nextLines: [String] = []
+                for index in lines.indices {
+                    if commentedDefinitionKey(in: lines[index]) == value.key {
+                        if index == lastCommentIndex {
+                            nextLines.append(newLine)
+                        }
+                    } else if definitionKey(in: lines[index]) != value.key {
+                        nextLines.append(lines[index])
+                    }
+                }
+                lines = nextLines
+                continue
+            }
+
             if let index = lines.indices.reversed().first(where: { definitionKey(in: lines[$0]) == value.key }) {
                 lines[index] = newLine
                 continue
             }
 
-            if let index = lines.indices.reversed().first(where: { commentedDefinitionKey(in: lines[$0]) == value.key }) {
-                lines.insert(newLine, at: lines.index(after: index))
-            } else {
-                lines.append(newLine)
-            }
+            lines.append(newLine)
         }
 
         let result = lines.joined(separator: "\n")
