@@ -4,7 +4,7 @@ import DESCore
 struct Apply: ParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "apply",
-        abstract: "Apply resolved out values to the target dotenv file.",
+        abstract: "Apply resolved changes to the target dotenv file.",
         shouldDisplay: false
     )
 

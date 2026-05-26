@@ -4,9 +4,9 @@
 
 `dotenv-switch` は、`envs.yml` に定義した名前付き設定を、既存の `.env` ファイルへ反映する CLI です。
 
-Instead of switching whole `.env.*` files, it uses `envs.yml` as the settings source and applies only the selected path's `out` values to `.env`.
+Instead of switching whole `.env.*` files, it uses `envs.yml` as the settings source and applies only the selected path's changes to `.env`.
 
-複数の `.env.*` ファイルを丸ごと切り替えるのではなく、`envs.yml` を設定のソースとして管理し、選んだ path の `out` だけを `.env` に部分適用します。
+複数の `.env.*` ファイルを丸ごと切り替えるのではなく、`envs.yml` を設定のソースとして管理し、選んだ path の変更だけを `.env` に部分適用します。
 
 ## Example / 例
 
@@ -26,6 +26,11 @@ network:
       host: "192.168.10.23"
     out:
       API_URL: "${{ scheme }}://${{ host }}"
+
+push:
+  off:
+    del:
+      - PUSH_ENABLED
 ```
 
 `.env`:
@@ -79,25 +84,35 @@ Multiple paths are applied in the order given.
 
 ### List / 一覧
 
-List paths that have an `out` mapping.
+List paths that have an `out` mapping or `del` sequence.
 
-`out` を持つ path を一覧表示します。
+`out` または `del` を持つ path を一覧表示します。
 
 ```console
 $ dotenv-switch list
 network.home
 network.office
+push.off
 ```
 
 ### Show / 表示
 
-Print resolved `out` values without changing `.env`.
+Print resolved changes without changing `.env`.
 
-`.env` を変更せず、式展開後の `out` を dotenv 形式で表示します。
+`.env` を変更せず、式展開後の変更内容を表示します。
 
 ```console
 $ dotenv-switch show network.home
 API_URL=http://192.168.1.2
+```
+
+Deletion operations are printed as `-KEY`.
+
+削除操作は `-KEY` として表示します。
+
+```console
+$ dotenv-switch show push.off
+-PUSH_ENABLED
 ```
 
 ### Diff / 差分
@@ -126,9 +141,9 @@ $ dotenv-switch network.home --dry-run
 
 ## envs.yml
 
-`envs.yml` can contain any tree shape. A node becomes selectable when it has an `out` mapping.
+`envs.yml` can contain any tree shape. A node becomes selectable when it has an `out` mapping or `del` sequence.
 
-`envs.yml` には任意のツリー構造を書けます。`out` を持つノードが、選択可能な path になります。
+`envs.yml` には任意のツリー構造を書けます。`out` または `del` を持つノードが、選択可能な path になります。
 
 Reserved keys:
 
@@ -136,13 +151,19 @@ Reserved keys:
 
 - `var`: string variables available to templates.
 - `out`: dotenv key-value output for the selected node.
+- `del`: dotenv keys to delete from the selected node.
 
 - `var`: テンプレートから参照できる文字列変数。
 - `out`: 選択したノードから `.env` へ出力する key-value。
+- `del`: 選択したノードで `.env` から削除する key。
 
 Only string values are allowed in `var` and `out`.
 
 `var` と `out` の値は文字列だけを認めます。
+
+`del` must be a sequence of dotenv keys.
+
+`del` は dotenv key の配列として書きます。
 
 Top-level `var` values are available to every path. A selected node can define its own `var`, and local variables override top-level variables with the same name.
 
@@ -187,6 +208,10 @@ Only variable-name expressions are supported. There is no escape syntax.
 `dotenv-switch` updates existing `KEY=value` lines while preserving unrelated comments, blank lines, and values.
 
 `dotenv-switch` は既存の `KEY=value` 行を更新します。関係ないコメント、空行、値はできるだけ保持します。
+
+`del` removes active `KEY=value` lines from `.env`. Commented-out definitions such as `# KEY=...` are left untouched.
+
+`del` は `.env` 内の有効な `KEY=value` 行を削除します。`# KEY=...` のようなコメントアウト行は変更しません。
 
 If a key does not exist, it looks for a commented-out definition:
 

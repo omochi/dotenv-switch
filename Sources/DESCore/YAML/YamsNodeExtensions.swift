@@ -14,6 +14,13 @@ extension Node {
         }
         return nil
     }
+
+    var sequence: Node.Sequence? {
+        if case .sequence(let sequence) = self {
+            return sequence
+        }
+        return nil
+    }
 }
 
 extension Node.Mapping {

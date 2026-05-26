@@ -3,7 +3,7 @@ import DESCore
 
 struct Show: ParsableCommand {
     static let configuration = CommandConfiguration(
-        abstract: "Print resolved out values for a path."
+        abstract: "Print resolved changes for a path."
     )
 
     @Argument(help: "The dot-separated path to show, such as network.home.")

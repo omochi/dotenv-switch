@@ -10,13 +10,14 @@ public struct DotEnvSwitch {
 
     public func list() throws -> [String] {
         let document = try loadDocument()
-        return collectOutPaths(in: document, prefix: [])
+        return collectChangePaths(in: document, prefix: [])
     }
 
     public func show(path: String) throws -> String {
-        let values = try resolvedOut(path: path)
-        return values.map { "\($0.key)=\(DotEnvFileValueFormatter.format($0.value))" }
-            .joined(separator: "\n")
+        let change = try resolvedChange(path: path)
+        let outLines = change.values.map { "\($0.key)=\(DotEnvFileValueFormatter.format($0.value))" }
+        let delLines = change.deletions.map { "-\($0)" }
+        return (outLines + delLines).joined(separator: "\n")
     }
 
     public func render(path: String) throws -> String {
@@ -27,8 +28,8 @@ public struct DotEnvSwitch {
         let document = try loadDocument()
         var target = try readFile(config.targetURL)
         for path in paths {
-            let values = try resolvedOut(path: path, document: document)
-            target = DotEnvFileEditor.update(target, values: values)
+            let change = try resolvedChange(path: path, document: document)
+            target = DotEnvFileEditor.update(target, change: change)
         }
         return target
     }
@@ -61,27 +62,30 @@ public struct DotEnvSwitch {
         )
     }
 
-    private func resolvedOut(path: String) throws -> [KeyValue] {
+    private func resolvedChange(path: String) throws -> DotEnvChange {
         let document = try loadDocument()
-        return try resolvedOut(path: path, document: document)
+        return try resolvedChange(path: path, document: document)
     }
 
-    private func resolvedOut(path: String, document: Node) throws -> [KeyValue] {
+    private func resolvedChange(path: String, document: Node) throws -> DotEnvChange {
         let node = try node(at: path, in: document)
-        guard let outNode = node.mapping?["out"] else {
-            throw DotEnvSwitchError.missingOut(path)
+        let outNode = node.mapping?["out"]
+        let delNode = node.mapping?["del"]
+        guard outNode != nil || delNode != nil else {
+            throw DotEnvSwitchError.missingOperation(path)
         }
 
         let topVariables = try stringMapping(document.mapping?["var"], name: "var") ?? []
         let localVariables = try stringMapping(node.mapping?["var"], name: "var") ?? []
-        let rawOut = try requiredStringMapping(outNode, name: "out")
         let variables = mergeVariables(topVariables, localVariables)
         let resolver = TemplateResolver(rawVariables: variables)
         let resolvedVars = try resolver.resolveAll()
         let outResolver = TemplateResolver(rawVariables: resolvedVars)
-        return try rawOut.map { item in
+        let values = try stringMapping(outNode, name: "out")?.map { item in
             KeyValue(key: item.key, value: try outResolver.render(item.value))
-        }
+        } ?? []
+        let deletions = try stringSequence(delNode, name: "del") ?? []
+        return DotEnvChange(values: values, deletions: deletions)
     }
 
     private func loadDocument() throws -> Node {
@@ -114,21 +118,21 @@ public struct DotEnvSwitch {
         return current
     }
 
-    private func collectOutPaths(in node: Node, prefix: [String]) -> [String] {
+    private func collectChangePaths(in node: Node, prefix: [String]) -> [String] {
         guard let mapping = node.mapping else {
             return []
         }
 
         var result: [String] = []
-        if mapping["out"] != nil, !prefix.isEmpty {
+        if (mapping["out"] != nil || mapping["del"] != nil), !prefix.isEmpty {
             result.append(prefix.joined(separator: "."))
         }
 
         for (key, child) in mapping.pairs {
-            guard key != "var", key != "out" else {
+            guard key != "var", key != "out", key != "del" else {
                 continue
             }
-            result.append(contentsOf: collectOutPaths(in: child, prefix: prefix + [key]))
+            result.append(contentsOf: collectChangePaths(in: child, prefix: prefix + [key]))
         }
         return result
     }
@@ -138,6 +142,21 @@ public struct DotEnvSwitch {
             return nil
         }
         return try requiredStringMapping(node, name: name)
+    }
+
+    private func stringSequence(_ node: Node?, name: String) throws -> [String]? {
+        guard let node else {
+            return nil
+        }
+        guard let sequence = node.sequence else {
+            throw DotEnvSwitchError.invalidSequence(name)
+        }
+        return try sequence.map { item in
+            guard let string = item.mappingKey else {
+                throw DotEnvSwitchError.invalidStringValue(name)
+            }
+            return string
+        }
     }
 
     private func requiredStringMapping(_ node: Node, name: String) throws -> [KeyValue] {

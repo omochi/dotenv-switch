@@ -4,7 +4,7 @@ import Testing
 
 @Suite
 struct DotEnvSwitchTests {
-    @Test func listReturnsOnlyOutNodesInYamlOrder() throws {
+    @Test func listReturnsOnlyChangeNodesInYamlOrder() throws {
         let fixture = try Fixture(
             envs: """
                 var:
@@ -17,12 +17,16 @@ struct DotEnvSwitchTests {
                     office:
                       out:
                         API_URL: "http://192.168.10.23"
+                push:
+                  off:
+                    del:
+                      - PUSH_ENABLED
                 """
         )
 
         let paths = try fixture.tool.list()
 
-        #expect(paths == ["network.home", "network.group.office"])
+        #expect(paths == ["network.home", "network.group.office", "push.off"])
     }
 
     @Test func listPreservesBooleanLikePathNames() throws {
@@ -146,6 +150,47 @@ struct DotEnvSwitchTests {
                 TOKEN=home-token
                 """
         )
+    }
+
+    @Test func applyDeletesExistingDefinitions() throws {
+        let fixture = try Fixture(
+            envs: """
+                push:
+                  off:
+                    del:
+                      - PUSH_ENABLED
+                """,
+            dotEnv: """
+                PUSH_ENABLED=YES
+                TOKEN=abc
+                PUSH_ENABLED=NO
+                # PUSH_ENABLED=example
+                """
+        )
+
+        _ = try fixture.tool.apply(path: "push.off")
+
+        #expect(
+            try fixture.readDotEnv() == """
+                TOKEN=abc
+                # PUSH_ENABLED=example
+                """
+        )
+    }
+
+    @Test func showPrintsDeletionOperations() throws {
+        let fixture = try Fixture(
+            envs: """
+                push:
+                  off:
+                    del:
+                      - PUSH_ENABLED
+                """
+        )
+
+        let output = try fixture.tool.show(path: "push.off")
+
+        #expect(output == "-PUSH_ENABLED")
     }
 
     @Test func showFormatsHashNewlineAndBackslashValues() throws {

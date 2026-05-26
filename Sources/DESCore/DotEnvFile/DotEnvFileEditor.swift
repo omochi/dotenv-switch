@@ -1,14 +1,24 @@
 import Foundation
 
 enum DotEnvFileEditor {
-    static func update(_ content: String, values: [KeyValue]) -> String {
+    static func update(_ content: String, change: DotEnvChange) -> String {
         var lines = content.split(separator: "\n", omittingEmptySubsequences: false).map(String.init)
         let hadTrailingNewline = content.hasSuffix("\n")
         if hadTrailingNewline {
             lines.removeLast()
         }
 
-        for value in values {
+        let deletionKeys = Set(change.deletions)
+        if !deletionKeys.isEmpty {
+            lines.removeAll { line in
+                guard let key = definitionKey(in: line) else {
+                    return false
+                }
+                return deletionKeys.contains(key)
+            }
+        }
+
+        for value in change.values {
             let newLine = "\(value.key)=\(DotEnvFileValueFormatter.format(value.value))"
             if let index = lines.indices.reversed().first(where: { definitionKey(in: lines[$0]) == value.key }) {
                 lines[index] = newLine

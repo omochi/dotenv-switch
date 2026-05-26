@@ -5,8 +5,9 @@ public enum DotEnvSwitchError: Error, CustomStringConvertible, Equatable {
     case fileNotFound(String)
     case invalidYAML(String)
     case pathNotFound(String)
-    case missingOut(String)
+    case missingOperation(String)
     case invalidMapping(String)
+    case invalidSequence(String)
     case invalidStringValue(String)
     case undefinedVariable(String)
     case cyclicVariable(String)
@@ -22,10 +23,12 @@ public enum DotEnvSwitchError: Error, CustomStringConvertible, Equatable {
             return "Invalid YAML: \(message)"
         case .pathNotFound(let path):
             return "Path not found: \(path)"
-        case .missingOut(let path):
-            return "Missing out for path: \(path)"
+        case .missingOperation(let path):
+            return "Missing out or del for path: \(path)"
         case .invalidMapping(let key):
             return "\(key) must be a mapping"
+        case .invalidSequence(let key):
+            return "\(key) must be a sequence"
         case .invalidStringValue(let key):
             return "\(key) must contain only string values"
         case .undefinedVariable(let name):
