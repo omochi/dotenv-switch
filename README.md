@@ -1,8 +1,8 @@
 # dotenv-switch
 
-`dotenv-switch` is a Swift CLI that applies named settings from `envs.yml` to an existing `.env` file.
+`dotenv-switch` is a CLI that applies named settings from `envs.yml` to an existing `.env` file.
 
-`dotenv-switch` は、`envs.yml` に定義した名前付き設定を、既存の `.env` ファイルへ反映する Swift 製 CLI です。
+`dotenv-switch` は、`envs.yml` に定義した名前付き設定を、既存の `.env` ファイルへ反映する CLI です。
 
 Instead of switching whole `.env.*` files, it uses `envs.yml` as the settings source and applies only the selected path's `out` values to `.env`.
 
