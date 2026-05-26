@@ -1,0 +1,24 @@
+{
+    "configurations": [
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:dotenv-switch}",
+            "name": "Debug dotenv-switch",
+            "target": "dotenv-switch",
+            "configuration": "debug",
+            "preLaunchTask": "swift: Build Debug dotenv-switch"
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:dotenv-switch}",
+            "name": "Release dotenv-switch",
+            "target": "dotenv-switch",
+            "configuration": "release",
+            "preLaunchTask": "swift: Build Release dotenv-switch"
+        }
+    ]
+}

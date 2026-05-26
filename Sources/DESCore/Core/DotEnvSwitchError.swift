@@ -1,0 +1,39 @@
+import Foundation
+
+public enum DotEnvSwitchError: Error, CustomStringConvertible, Equatable {
+    case invalidArguments(String)
+    case fileNotFound(String)
+    case invalidYAML(String)
+    case pathNotFound(String)
+    case missingOut(String)
+    case invalidMapping(String)
+    case invalidStringValue(String)
+    case undefinedVariable(String)
+    case cyclicVariable(String)
+    case unterminatedExpression
+
+    public var description: String {
+        switch self {
+        case .invalidArguments(let message):
+            return message
+        case .fileNotFound(let path):
+            return "File not found: \(path)"
+        case .invalidYAML(let message):
+            return "Invalid YAML: \(message)"
+        case .pathNotFound(let path):
+            return "Path not found: \(path)"
+        case .missingOut(let path):
+            return "Missing out for path: \(path)"
+        case .invalidMapping(let key):
+            return "\(key) must be a mapping"
+        case .invalidStringValue(let key):
+            return "\(key) must contain only string values"
+        case .undefinedVariable(let name):
+            return "Undefined variable: \(name)"
+        case .cyclicVariable(let name):
+            return "Cyclic variable reference: \(name)"
+        case .unterminatedExpression:
+            return "Unterminated expression"
+        }
+    }
+}
