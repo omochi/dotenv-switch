@@ -9,7 +9,7 @@ extension Node {
     }
 
     var string: String? {
-        if case .scalar(let scalar) = self, scalar.tag.rawValue == Tag.Name.str.rawValue {
+        if case .scalar(let scalar) = self {
             return scalar.string
         }
         return nil

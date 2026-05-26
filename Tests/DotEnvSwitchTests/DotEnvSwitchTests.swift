@@ -69,6 +69,29 @@ struct DotEnvSwitchTests {
         #expect(output == "API_URL=http://192.168.10.23")
     }
 
+    @Test func showAcceptsScalarValuesAsStrings() throws {
+        let fixture = try Fixture(
+            envs: """
+                log:
+                  debug:
+                    out:
+                      LOG_LEVEL: debug
+                      PORT: 8080
+                      PUSH_ENABLED: true
+                """
+        )
+
+        let output = try fixture.tool.show(path: "log.debug")
+
+        #expect(
+            output == """
+                LOG_LEVEL=debug
+                PORT=8080
+                PUSH_ENABLED=true
+                """
+        )
+    }
+
     @Test func applyUpdatesLastExistingDefinition() throws {
         let fixture = try Fixture(
             envs: """
@@ -251,17 +274,18 @@ struct DotEnvSwitchTests {
         )
     }
 
-    @Test func nonStringOutValueFails() throws {
+    @Test func nonScalarOutValueFails() throws {
         let fixture = try Fixture(
             envs: """
                 network:
                   home:
                     out:
-                      PORT: 8080
+                      DATABASE:
+                        HOST: localhost
                 """
         )
 
-        #expect(throws: DotEnvSwitchError.invalidStringValue("out.PORT")) {
+        #expect(throws: DotEnvSwitchError.invalidStringValue("out.DATABASE")) {
             _ = try fixture.tool.show(path: "network.home")
         }
     }

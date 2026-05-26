@@ -76,9 +76,10 @@ network:
 
 - `out` は YAML mapping でなければならない。
 - `out` のキーは dotenv のキー名として扱う。
-- `out` の値は文字列だけを認める。
+- `out` の値は YAML scalar だけを認める。
 - `out` 自体は path の一部として扱わない。
-- 文字列以外の値が含まれている場合は失敗し、target は変更しない。
+- scalar は YAML 上の文字列表現として扱う。例: `8080` は `8080`、`true` は `true` として扱う。
+- mapping や sequence が含まれている場合は失敗し、target は変更しない。
 
 ## `del` 規約
 
@@ -121,8 +122,9 @@ network:
 
 - `var` は YAML mapping でなければならない。
 - `var` のキーは変数名として扱う。
-- `var` の値は文字列だけを認める。
-- 文字列以外の値が含まれている場合は失敗し、target は変更しない。
+- `var` の値は YAML scalar だけを認める。
+- scalar は YAML 上の文字列表現として扱う。
+- mapping や sequence が含まれている場合は失敗し、target は変更しない。
 - top-level の `var` は全 path から参照できる。
 - path が指す定義ノード内の `var` は、そのノードの `out` から参照できる。
 - 定義ノード内の `var` は top-level の `var` を上書きできる。

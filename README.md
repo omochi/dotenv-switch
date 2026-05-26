@@ -157,9 +157,9 @@ Reserved keys:
 - `out`: 選択したノードから `.env` へ出力する key-value。
 - `del`: 選択したノードで `.env` から削除する key。
 
-Only string values are allowed in `var` and `out`.
+Only scalar values are allowed in `var` and `out`. Scalar values are used through their YAML string representation, so unquoted values such as `8080`, `true`, and `debug` are accepted.
 
-`var` と `out` の値は文字列だけを認めます。
+`var` と `out` の値は YAML scalar だけを認めます。scalar は YAML 上の文字列表現として使うため、`8080`、`true`、`debug` のような unquoted value も受け入れます。
 
 `del` must be a sequence of dotenv keys.
 
