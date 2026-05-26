@@ -11,11 +11,11 @@ struct DotEnvSwitchTests {
                   host: "192.168.1.2"
                 network:
                   home:
-                    out:
+                    set:
                       API_URL: "http://${{ host }}"
                   group:
                     office:
-                      out:
+                      set:
                         API_URL: "http://192.168.10.23"
                 push:
                   off:
@@ -34,10 +34,10 @@ struct DotEnvSwitchTests {
             envs: """
                 push:
                   off:
-                    out:
+                    set:
                       PUSH_ENABLED: "NO"
                   on:
-                    out:
+                    set:
                       PUSH_ENABLED: "YES"
                 """
         )
@@ -59,7 +59,7 @@ struct DotEnvSwitchTests {
                     var:
                       host: "192.168.10.23"
                       baseURL: "${{ scheme }}://${{ host }}"
-                    out:
+                    set:
                       API_URL: "${{ baseURL }}"
                 """
         )
@@ -74,7 +74,7 @@ struct DotEnvSwitchTests {
             envs: """
                 log:
                   debug:
-                    out:
+                    set:
                       LOG_LEVEL: debug
                       PORT: 8080
                       PUSH_ENABLED: true
@@ -97,7 +97,7 @@ struct DotEnvSwitchTests {
             envs: """
                 network:
                   home:
-                    out:
+                    set:
                       API_URL: "http://192.168.1.2"
                 """,
             dotEnv: """
@@ -123,7 +123,7 @@ struct DotEnvSwitchTests {
             envs: """
                 network:
                   home:
-                    out:
+                    set:
                       API_URL: "http://192.168.1.2"
                 """,
             dotEnv: """
@@ -152,11 +152,11 @@ struct DotEnvSwitchTests {
             envs: """
                 network:
                   home:
-                    out:
+                    set:
                       API_URL: "http://192.168.1.2"
                       TOKEN: "home-token"
                   office:
-                    out:
+                    set:
                       API_URL: "http://192.168.10.23"
                 """,
             dotEnv: """
@@ -175,7 +175,7 @@ struct DotEnvSwitchTests {
         )
     }
 
-    @Test func applyDeletesExistingDefinitions() throws {
+    @Test func applyDeletesExistingDefinitionsWhenCommentedDefinitionExists() throws {
         let fixture = try Fixture(
             envs: """
                 push:
@@ -201,6 +201,82 @@ struct DotEnvSwitchTests {
         )
     }
 
+    @Test func applyCommentsOutExistingDefinitionsWhenNoCommentedDefinitionExists() throws {
+        let fixture = try Fixture(
+            envs: """
+                push:
+                  off:
+                    del:
+                      - PUSH_ENABLED
+                """,
+            dotEnv: """
+                TOKEN=abc
+                PUSH_ENABLED=YES
+                OTHER=value
+                """
+        )
+
+        _ = try fixture.tool.apply(path: "push.off")
+
+        #expect(
+            try fixture.readDotEnv() == """
+                TOKEN=abc
+                # PUSH_ENABLED=YES
+                OTHER=value
+                """
+        )
+    }
+
+    @Test func applySetAndDelPreservesDefinitionPositionAcrossRepeatedSwitches() throws {
+        let fixture = try Fixture(
+            envs: """
+                log:
+                  debug:
+                    set:
+                      LOG_LEVEL: debug
+                  default:
+                    del:
+                      - LOG_LEVEL
+                """,
+            dotEnv: """
+                TOKEN=abc
+                LOG_LEVEL=info
+                OTHER=value
+                """
+        )
+
+        _ = try fixture.tool.apply(path: "log.default")
+
+        #expect(
+            try fixture.readDotEnv() == """
+                TOKEN=abc
+                # LOG_LEVEL=info
+                OTHER=value
+                """
+        )
+
+        _ = try fixture.tool.apply(path: "log.debug")
+
+        #expect(
+            try fixture.readDotEnv() == """
+                TOKEN=abc
+                # LOG_LEVEL=info
+                LOG_LEVEL=debug
+                OTHER=value
+                """
+        )
+
+        _ = try fixture.tool.apply(path: "log.default")
+
+        #expect(
+            try fixture.readDotEnv() == """
+                TOKEN=abc
+                # LOG_LEVEL=info
+                OTHER=value
+                """
+        )
+    }
+
     @Test func showPrintsDeletionOperations() throws {
         let fixture = try Fixture(
             envs: """
@@ -221,7 +297,7 @@ struct DotEnvSwitchTests {
             envs: """
                 network:
                   home:
-                    out:
+                    set:
                       HASH: "abc#def"
                       MULTILINE: "line1\\nline2"
                       PATH: "C:\\\\Users\\\\omochi#home"
@@ -244,7 +320,7 @@ struct DotEnvSwitchTests {
             envs: """
                 network:
                   home:
-                    out:
+                    set:
                       API_URL: "http://192.168.1.2"
                 """,
             dotEnv: """
@@ -274,18 +350,18 @@ struct DotEnvSwitchTests {
         )
     }
 
-    @Test func nonScalarOutValueFails() throws {
+    @Test func nonScalarSetValueFails() throws {
         let fixture = try Fixture(
             envs: """
                 network:
                   home:
-                    out:
+                    set:
                       DATABASE:
                         HOST: localhost
                 """
         )
 
-        #expect(throws: DotEnvSwitchError.invalidStringValue("out.DATABASE")) {
+        #expect(throws: DotEnvSwitchError.invalidStringValue("set.DATABASE")) {
             _ = try fixture.tool.show(path: "network.home")
         }
     }

@@ -19,12 +19,12 @@ var:
 
 network:
   home:
-    out:
+    set:
       API_URL: "${{ scheme }}://${{ host }}"
   office:
     var:
       host: "192.168.10.23"
-    out:
+    set:
       API_URL: "${{ scheme }}://${{ host }}"
 
 push:
@@ -84,9 +84,9 @@ Multiple paths are applied in the order given.
 
 ### List / 一覧
 
-List paths that have an `out` mapping or `del` sequence.
+List paths that have a `set` mapping or `del` sequence.
 
-`out` または `del` を持つ path を一覧表示します。
+`set` または `del` を持つ path を一覧表示します。
 
 ```console
 $ dotenv-switch list
@@ -141,25 +141,25 @@ $ dotenv-switch network.home --dry-run
 
 ## envs.yml
 
-`envs.yml` can contain any tree shape. A node becomes selectable when it has an `out` mapping or `del` sequence.
+`envs.yml` can contain any tree shape. A node becomes selectable when it has a `set` mapping or `del` sequence.
 
-`envs.yml` には任意のツリー構造を書けます。`out` または `del` を持つノードが、選択可能な path になります。
+`envs.yml` には任意のツリー構造を書けます。`set` または `del` を持つノードが、選択可能な path になります。
 
 Reserved keys:
 
 予約キー:
 
 - `var`: string variables available to templates.
-- `out`: dotenv key-value output for the selected node.
-- `del`: dotenv keys to delete from the selected node.
+- `set`: dotenv key-value output for the selected node.
+- `del`: dotenv keys to disable from the selected node.
 
 - `var`: テンプレートから参照できる文字列変数。
-- `out`: 選択したノードから `.env` へ出力する key-value。
-- `del`: 選択したノードで `.env` から削除する key。
+- `set`: 選択したノードから `.env` へ出力する key-value。
+- `del`: 選択したノードで `.env` から無効化する key。
 
-Only scalar values are allowed in `var` and `out`. Scalar values are used through their YAML string representation, so unquoted values such as `8080`, `true`, and `debug` are accepted.
+Only scalar values are allowed in `var` and `set`. Scalar values are used through their YAML string representation, so unquoted values such as `8080`, `true`, and `debug` are accepted.
 
-`var` と `out` の値は YAML scalar だけを認めます。scalar は YAML 上の文字列表現として使うため、`8080`、`true`、`debug` のような unquoted value も受け入れます。
+`var` と `set` の値は YAML scalar だけを認めます。scalar は YAML 上の文字列表現として使うため、`8080`、`true`、`debug` のような unquoted value も受け入れます。
 
 `del` must be a sequence of dotenv keys.
 
@@ -177,15 +177,15 @@ network:
   office:
     var:
       host: "192.168.10.23"
-    out:
+    set:
       API_URL: "http://${{ host }}"
 ```
 
 ## Templates / テンプレート
 
-`var` and `out` values can use `${{ variableName }}` expressions.
+`var` and `set` values can use `${{ variableName }}` expressions.
 
-`var` と `out` の値では、`${{ variableName }}` 形式の式を使えます。
+`var` と `set` の値では、`${{ variableName }}` 形式の式を使えます。
 
 ```yaml
 var:
@@ -195,7 +195,7 @@ var:
 
 network:
   home:
-    out:
+    set:
       API_URL: "${{ baseURL }}"
 ```
 
@@ -209,9 +209,9 @@ Only variable-name expressions are supported. There is no escape syntax.
 
 `dotenv-switch` は既存の `KEY=value` 行を更新します。関係ないコメント、空行、値はできるだけ保持します。
 
-`del` removes active `KEY=value` lines from `.env`. Commented-out definitions such as `# KEY=...` are left untouched.
+`del` disables active `KEY=value` lines from `.env`. If a commented-out definition such as `# KEY=...` already exists anywhere in the file, active definitions for that key are removed. Otherwise, active definitions are commented out in place as `# KEY=value`.
 
-`del` は `.env` 内の有効な `KEY=value` 行を削除します。`# KEY=...` のようなコメントアウト行は変更しません。
+`del` は `.env` 内の有効な `KEY=value` 行を無効化します。`# KEY=...` のようなコメントアウト行がファイル内のどこかに既にある場合、その key の有効な定義行は削除します。存在しない場合は、現在の定義行を `# KEY=value` としてその場でコメントアウトします。
 
 If a key does not exist, it looks for a commented-out definition:
 

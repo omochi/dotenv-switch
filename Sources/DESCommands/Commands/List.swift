@@ -3,7 +3,7 @@ import DESCore
 
 struct List: ParsableCommand {
     static let configuration = CommandConfiguration(
-        abstract: "List paths that have out or del."
+        abstract: "List paths that have set or del."
     )
 
     @OptionGroup

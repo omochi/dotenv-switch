@@ -8,13 +8,15 @@ enum DotEnvFileEditor {
             lines.removeLast()
         }
 
-        let deletionKeys = Set(change.deletions)
-        if !deletionKeys.isEmpty {
-            lines.removeAll { line in
-                guard let key = definitionKey(in: line) else {
-                    return false
+        for key in change.deletions {
+            if lines.contains(where: { commentedDefinitionKey(in: $0) == key }) {
+                lines.removeAll { line in
+                    definitionKey(in: line) == key
                 }
-                return deletionKeys.contains(key)
+            } else {
+                for index in lines.indices where definitionKey(in: lines[index]) == key {
+                    lines[index] = "# " + lines[index]
+                }
             }
         }
 

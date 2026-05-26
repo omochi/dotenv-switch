@@ -15,9 +15,9 @@ public struct DotEnvSwitch {
 
     public func show(path: String) throws -> String {
         let change = try resolvedChange(path: path)
-        let outLines = change.values.map { "\($0.key)=\(DotEnvFileValueFormatter.format($0.value))" }
+        let setLines = change.values.map { "\($0.key)=\(DotEnvFileValueFormatter.format($0.value))" }
         let delLines = change.deletions.map { "-\($0)" }
-        return (outLines + delLines).joined(separator: "\n")
+        return (setLines + delLines).joined(separator: "\n")
     }
 
     public func render(path: String) throws -> String {
@@ -69,9 +69,9 @@ public struct DotEnvSwitch {
 
     private func resolvedChange(path: String, document: Node) throws -> DotEnvChange {
         let node = try node(at: path, in: document)
-        let outNode = node.mapping?["out"]
+        let setNode = node.mapping?["set"]
         let delNode = node.mapping?["del"]
-        guard outNode != nil || delNode != nil else {
+        guard setNode != nil || delNode != nil else {
             throw DotEnvSwitchError.missingOperation(path)
         }
 
@@ -80,9 +80,9 @@ public struct DotEnvSwitch {
         let variables = mergeVariables(topVariables, localVariables)
         let resolver = TemplateResolver(rawVariables: variables)
         let resolvedVars = try resolver.resolveAll()
-        let outResolver = TemplateResolver(rawVariables: resolvedVars)
-        let values = try stringMapping(outNode, name: "out")?.map { item in
-            KeyValue(key: item.key, value: try outResolver.render(item.value))
+        let setResolver = TemplateResolver(rawVariables: resolvedVars)
+        let values = try stringMapping(setNode, name: "set")?.map { item in
+            KeyValue(key: item.key, value: try setResolver.render(item.value))
         } ?? []
         let deletions = try stringSequence(delNode, name: "del") ?? []
         return DotEnvChange(values: values, deletions: deletions)
@@ -124,12 +124,12 @@ public struct DotEnvSwitch {
         }
 
         var result: [String] = []
-        if (mapping["out"] != nil || mapping["del"] != nil), !prefix.isEmpty {
+        if (mapping["set"] != nil || mapping["del"] != nil), !prefix.isEmpty {
             result.append(prefix.joined(separator: "."))
         }
 
         for (key, child) in mapping.pairs {
-            guard key != "var", key != "out", key != "del" else {
+            guard key != "var", key != "set", key != "del" else {
                 continue
             }
             result.append(contentsOf: collectChangePaths(in: child, prefix: prefix + [key]))

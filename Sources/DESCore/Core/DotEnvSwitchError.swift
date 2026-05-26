@@ -24,7 +24,7 @@ public enum DotEnvSwitchError: Error, CustomStringConvertible, Equatable {
         case .pathNotFound(let path):
             return "Path not found: \(path)"
         case .missingOperation(let path):
-            return "Missing out or del for path: \(path)"
+            return "Missing set or del for path: \(path)"
         case .invalidMapping(let key):
             return "\(key) must be a mapping"
         case .invalidSequence(let key):
