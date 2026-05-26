@@ -1,6 +1,13 @@
 import Yams
 
 extension Node {
+    var mappingKey: String? {
+        if case .scalar(let scalar) = self {
+            return scalar.string
+        }
+        return nil
+    }
+
     var string: String? {
         if case .scalar(let scalar) = self, scalar.tag.rawValue == Tag.Name.str.rawValue {
             return scalar.string
@@ -12,11 +19,11 @@ extension Node {
 extension Node.Mapping {
     var pairs: [(String, Node)] {
         map { key, value in
-            (key.string ?? "", value)
+            (key.mappingKey ?? "", value)
         }
     }
 
     subscript(_ key: String) -> Node? {
-        first { item, _ in item.string == key }?.1
+        first { item, _ in item.mappingKey == key }?.1
     }
 }

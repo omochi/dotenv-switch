@@ -25,6 +25,24 @@ struct DotEnvSwitchTests {
         #expect(paths == ["network.home", "network.group.office"])
     }
 
+    @Test func listPreservesBooleanLikePathNames() throws {
+        let fixture = try Fixture(
+            envs: """
+                push:
+                  off:
+                    out:
+                      PUSH_ENABLED: "NO"
+                  on:
+                    out:
+                      PUSH_ENABLED: "YES"
+                """
+        )
+
+        let paths = try fixture.tool.list()
+
+        #expect(paths == ["push.off", "push.on"])
+    }
+
     @Test func showResolvesTopLevelAndLocalVariables() throws {
         let fixture = try Fixture(
             envs: """
