@@ -30,7 +30,7 @@ public enum DotEnvSwitchError: Error, CustomStringConvertible, Equatable {
         case .invalidSequence(let key):
             return "\(key) must be a sequence"
         case .invalidStringValue(let key):
-            return "\(key) must contain only string values"
+            return "\(key) must contain only scalar values"
         case .undefinedVariable(let name):
             return "Undefined variable: \(name)"
         case .cyclicVariable(let name):
