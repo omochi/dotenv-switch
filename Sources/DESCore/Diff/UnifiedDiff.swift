@@ -7,8 +7,8 @@ struct UnifiedDiff {
         }
         let oldLines = splitLines(old)
         let newLines = splitLines(new)
-        let operations = numbered(diff(oldLines, newLines))
-        let hunks = makeHunks(operations)
+        let lines = numbered(diff(oldLines, newLines))
+        let hunks = makeHunks(lines)
 
         var output: [String] = [
             "--- \(oldName)",
@@ -17,23 +17,23 @@ struct UnifiedDiff {
 
         for hunk in hunks {
             output.append(hunk.header)
-            for operation in hunk.operations {
-                output.append(operation.line)
+            for line in hunk.lines {
+                output.append(line.content)
             }
         }
         return output.joined(separator: "\n") + "\n"
     }
 
-    private static func makeHunks(_ operations: [NumberedOperation]) -> [Hunk] {
-        let changeIndices = operations.indices.filter { operations[$0].operation.isChange }
+    private static func makeHunks(_ lines: [NumberedDiffLine]) -> [DiffHunk] {
+        let changeIndices = lines.indices.filter { lines[$0].line.operation.isChange }
         guard !changeIndices.isEmpty else {
             return []
         }
 
         var ranges: [ClosedRange<Int>] = []
         for index in changeIndices {
-            let start = max(operations.startIndex, index - contextLineCount)
-            let end = min(operations.index(before: operations.endIndex), index + contextLineCount)
+            let start = max(lines.startIndex, index - contextLineCount)
+            let end = min(lines.index(before: lines.endIndex), index + contextLineCount)
             if let last = ranges.last, start <= last.upperBound + 1 {
                 ranges[ranges.index(before: ranges.endIndex)] = last.lowerBound...max(last.upperBound, end)
             } else {
@@ -42,45 +42,45 @@ struct UnifiedDiff {
         }
 
         return ranges.map { range in
-            Hunk(operations: Array(operations[range]))
+            DiffHunk(lines: Array(lines[range]))
         }
     }
 
-    private static func numbered(_ operations: [Operation]) -> [NumberedOperation] {
+    private static func numbered(_ lines: [DiffLine]) -> [NumberedDiffLine] {
         var oldLine = 1
         var newLine = 1
-        return operations.map { operation in
-            let result: NumberedOperation
-            switch operation {
-            case .equal(let line):
-                result = NumberedOperation(
-                    operation: operation,
+        return lines.map { line in
+            let result: NumberedDiffLine
+            switch line.operation {
+            case .equal:
+                result = NumberedDiffLine(
+                    line: line,
                     oldLine: oldLine,
                     newLine: newLine,
                     oldAnchor: oldLine,
                     newAnchor: newLine,
-                    line: " \(line)"
+                    content: " \(line.content)"
                 )
                 oldLine += 1
                 newLine += 1
-            case .delete(let line):
-                result = NumberedOperation(
-                    operation: operation,
+            case .delete:
+                result = NumberedDiffLine(
+                    line: line,
                     oldLine: oldLine,
                     newLine: nil,
                     oldAnchor: oldLine,
                     newAnchor: newLine,
-                    line: "-\(line)"
+                    content: "-\(line.content)"
                 )
                 oldLine += 1
-            case .insert(let line):
-                result = NumberedOperation(
-                    operation: operation,
+            case .insert:
+                result = NumberedDiffLine(
+                    line: line,
                     oldLine: nil,
                     newLine: newLine,
                     oldAnchor: oldLine,
                     newAnchor: newLine,
-                    line: "+\(line)"
+                    content: "+\(line.content)"
                 )
                 newLine += 1
             }
@@ -96,81 +96,39 @@ struct UnifiedDiff {
         return lines
     }
 
-    private static func diff(_ old: [String], _ new: [String]) -> [Operation] {
-        var table = Array(
-            repeating: Array(repeating: 0, count: new.count + 1),
-            count: old.count + 1
-        )
-        for i in stride(from: old.count - 1, through: 0, by: -1) where old.count > 0 {
-            for j in stride(from: new.count - 1, through: 0, by: -1) where new.count > 0 {
-                if old[i] == new[j] {
-                    table[i][j] = table[i + 1][j + 1] + 1
-                } else {
-                    table[i][j] = max(table[i + 1][j], table[i][j + 1])
-                }
+    private static func diff(_ old: [String], _ new: [String]) -> [DiffLine] {
+        let difference = new.difference(from: old)
+        var removals: [Int: [String]] = [:]
+        var insertions: [Int: [String]] = [:]
+
+        for change in difference {
+            switch change {
+            case .remove(let offset, let element, _):
+                removals[offset, default: []].append(element)
+            case .insert(let offset, let element, _):
+                insertions[offset, default: []].append(element)
             }
         }
 
-        var result: [Operation] = []
+        var result: [DiffLine] = []
         var i = 0
         var j = 0
-        while i < old.count, j < new.count {
-            if old[i] == new[j] {
-                result.append(.equal(old[i]))
+        while i < old.count || j < new.count {
+            if let lines = removals[i] {
+                result += lines.map { DiffLine(operation: .delete, content: $0) }
+                i += lines.count
+            } else if let lines = insertions[j] {
+                result += lines.map { DiffLine(operation: .insert, content: $0) }
+                j += lines.count
+            } else if i < old.count, j < new.count {
+                result.append(DiffLine(operation: .equal, content: old[i]))
                 i += 1
                 j += 1
-            } else if table[i + 1][j] >= table[i][j + 1] {
-                result.append(.delete(old[i]))
-                i += 1
             } else {
-                result.append(.insert(new[j]))
-                j += 1
+                break
             }
-        }
-        while i < old.count {
-            result.append(.delete(old[i]))
-            i += 1
-        }
-        while j < new.count {
-            result.append(.insert(new[j]))
-            j += 1
         }
         return result
     }
 
-    private enum Operation {
-        case equal(String)
-        case delete(String)
-        case insert(String)
-
-        var isChange: Bool {
-            switch self {
-            case .equal:
-                return false
-            case .delete, .insert:
-                return true
-            }
-        }
-    }
-
-    private struct NumberedOperation {
-        var operation: Operation
-        var oldLine: Int?
-        var newLine: Int?
-        var oldAnchor: Int
-        var newAnchor: Int
-        var line: String
-    }
-
-    private struct Hunk {
-        var operations: [NumberedOperation]
-
-        var header: String {
-            let oldLines = operations.compactMap(\.oldLine)
-            let newLines = operations.compactMap(\.newLine)
-            let oldStart = oldLines.first ?? operations.first?.oldAnchor ?? 0
-            let newStart = newLines.first ?? operations.first?.newAnchor ?? 0
-            return "@@ -\(oldStart),\(oldLines.count) +\(newStart),\(newLines.count) @@"
-        }
-    }
 }

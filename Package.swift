@@ -5,6 +5,9 @@ import PackageDescription
 
 let package = Package(
     name: "dotenv-switch",
+    platforms: [
+        .macOS(.v10_15),
+    ],
     products: [
         .executable(name: "dotenv-switch", targets: ["dotenv-switch"]),
         .library(name: "DESCore", targets: ["DESCore"]),
