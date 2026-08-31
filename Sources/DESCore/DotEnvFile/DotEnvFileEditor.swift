@@ -52,6 +52,30 @@ enum DotEnvFileEditor {
         return result
     }
 
+    static func changedKeys(
+        from original: String,
+        to updated: String,
+        candidates: [String]
+    ) -> [String] {
+        var seen: Set<String> = []
+        return candidates.filter { key in
+            guard seen.insert(key).inserted else {
+                return false
+            }
+            return definitions(for: key, in: original) != definitions(for: key, in: updated)
+        }
+    }
+
+    private static func definitions(for key: String, in content: String) -> [String] {
+        content.split(separator: "\n", omittingEmptySubsequences: false).compactMap { line in
+            let line = String(line)
+            guard definitionKey(in: line) == key || commentedDefinitionKey(in: line) == key else {
+                return nil
+            }
+            return line
+        }
+    }
+
     private static func definitionKey(in line: String) -> String? {
         guard let equals = line.firstIndex(of: "=") else {
             return nil

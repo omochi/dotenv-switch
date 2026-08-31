@@ -25,13 +25,24 @@ public struct DotEnvSwitch {
     }
 
     public func render(paths: [String]) throws -> String {
+        let original = try readFile(config.targetURL)
+        return try renderPlan(paths: paths, original: original).content
+    }
+
+    private func renderPlan(
+        paths: [String],
+        original: String
+    ) throws -> (content: String, keys: [String]) {
         let document = try loadDocument()
-        var target = try readFile(config.targetURL)
+        var target = original
+        var keys: [String] = []
         for path in paths {
             let change = try resolvedChange(path: path, document: document)
             target = DotEnvFileEditor.update(target, change: change)
+            keys.append(contentsOf: change.deletions)
+            keys.append(contentsOf: change.values.map(\.key))
         }
-        return target
+        return (target, keys)
     }
 
     public func apply(path: String) throws -> String {
@@ -39,12 +50,24 @@ public struct DotEnvSwitch {
     }
 
     public func apply(paths: [String]) throws -> String {
-        let rendered = try render(paths: paths)
-        try rendered.write(to: config.targetURL, atomically: true, encoding: .utf8)
+        let original = try readFile(config.targetURL)
+        let plan = try renderPlan(paths: paths, original: original)
+        try plan.content.write(to: config.targetURL, atomically: true, encoding: .utf8)
         if config.quiet {
             return ""
         }
-        return "Updated \(config.target) with \(paths.joined(separator: ", "))."
+        let changedKeys = DotEnvFileEditor.changedKeys(
+            from: original,
+            to: plan.content,
+            candidates: plan.keys
+        )
+        let changedKeysOutput = changedKeys.isEmpty
+            ? "Changed keys: none."
+            : "Changed keys:\n" + changedKeys.map { "- \($0)" }.joined(separator: "\n")
+        return """
+            Updated \(config.target) with \(paths.joined(separator: ", ")).
+            \(changedKeysOutput)
+            """
     }
 
     public func diff(path: String) throws -> String {

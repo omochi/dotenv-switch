@@ -170,11 +170,16 @@ network:
 ```console
 $ dotenv-switch network.home
 Updated .env with network.home.
+Changed keys:
+- API_URL
 ```
 
 ```console
 $ dotenv-switch network.home api.local
 Updated .env with network.home, api.local.
+Changed keys:
+- API_URL
+- API_PORT
 ```
 
 仕様:
@@ -189,6 +194,9 @@ Updated .env with network.home, api.local.
 - 対象外の行、コメント、空行は保持する。
 - すべての更新が成功するまで、target の内容を中途半端に変更しない。
 - 複数 path はカンマ区切りではなく、通常のコマンドライン引数として空白区切りで受け取る。
+- 反映後、target で実際に定義が変わったキー名だけを、値を含めずに表示する。
+- target がすでに指定された状態で変更がなかった場合は `Changed keys: none.` と表示する。
+- `--quiet` の場合は成功メッセージと変更キーを表示しない。
 
 ### `dotenv-switch list`
 

@@ -174,6 +174,65 @@ struct DotEnvSwitchTests {
         )
     }
 
+    @Test func applyPrintsOnlyActuallyChangedKeysWithoutValues() throws {
+        let fixture = try Fixture(
+            envs: """
+                network:
+                  office:
+                    set:
+                      API_URL: "https://office.example.com"
+                      TOKEN: "secret-new-token"
+                      PORT: "8080"
+                    del:
+                      - PUSH_ENABLED
+                """,
+            dotEnv: """
+                API_URL=https://home.example.com
+                TOKEN=secret-old-token
+                PORT=8080
+                PUSH_ENABLED=YES
+                """
+        )
+
+        let output = try fixture.tool.apply(path: "network.office")
+
+        #expect(
+            output == """
+                Updated .env with network.office.
+                Changed keys:
+                - PUSH_ENABLED
+                - API_URL
+                - TOKEN
+                """
+        )
+        #expect(!output.contains("secret-old-token"))
+        #expect(!output.contains("secret-new-token"))
+        #expect(!output.contains("https://"))
+    }
+
+    @Test func applyPrintsNoneWhenTargetIsUnchanged() throws {
+        let fixture = try Fixture(
+            envs: """
+                network:
+                  home:
+                    set:
+                      API_URL: "http://192.168.1.2"
+                """,
+            dotEnv: """
+                API_URL=http://192.168.1.2
+                """
+        )
+
+        let output = try fixture.tool.apply(path: "network.home")
+
+        #expect(
+            output == """
+                Updated .env with network.home.
+                Changed keys: none.
+                """
+        )
+    }
+
     @Test func applyDeletesExistingDefinitionsWhenCommentedDefinitionExists() throws {
         let fixture = try Fixture(
             envs: """
