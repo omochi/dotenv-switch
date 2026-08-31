@@ -48,6 +48,8 @@ Apply `network.home`.
 ```console
 $ dotenv-switch network.home
 Updated .env with network.home.
+Changed keys:
+- API_URL
 ```
 
 Result:
@@ -81,6 +83,10 @@ $ dotenv-switch network.home api.local
 Multiple paths are applied in the order given.
 
 複数 path は、指定した順番で重ねて反映されます。
+
+After applying, the keys whose target definitions actually changed are printed without their values. If the target was already in the requested state, `Changed keys: none.` is printed. `--quiet` suppresses this output.
+
+反映後、target で実際に定義が変わったキー名だけを、値を含めずに表示します。target がすでに指定された状態だった場合は `Changed keys: none.` と表示します。`--quiet` を指定すると、この出力は抑制されます。
 
 ### List / 一覧
 
